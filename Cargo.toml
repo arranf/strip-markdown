@@ -6,7 +6,7 @@ edition = "2018"
 description = "A simple crate to remove markdown syntax from markdown files."
 repository = "https://github.com/arranf/strip-markdown"
 readme = "README.md"
-keywords = ["Markdown", "Strip Markdown"]
+keywords = ["Markdown"]
 license = "MIT"
 
 [dependencies]
