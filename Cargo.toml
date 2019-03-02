@@ -3,6 +3,11 @@ name = "strip_markdown"
 version = "0.1.0"
 authors = ["Arran France <arran@arranfrance.com>"]
 edition = "2018"
+description = "A simple crate to remove markdown syntax from markdown files."
+repository = "https://github.com/arranf/strip-markdown"
+readme = "README.md"
+keywords = ["Markdown", "Strip Markdown"]
+license = "MIT"
 
 [dependencies]
 pulldown-cmark = "0.2.0"
