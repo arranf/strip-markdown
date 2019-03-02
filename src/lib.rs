@@ -1,3 +1,7 @@
+#[clippy::all]
+
+#[macro_use]
+extern crate log;
 extern crate pulldown_cmark;
 
 use pulldown_cmark::Event::{Text, SoftBreak, HardBreak, Start, End};
@@ -7,11 +11,11 @@ pub fn strip_markdown(markdown: &str) -> String {
     let mut parser = Parser::new(&markdown);
     let mut buffer = String::new();
     while let Some(event) = parser.next() {
-        println!("{:?}", event);
+        debug!("{:?}", event);
         match event {
             Start(tag) => start_tag(tag, &mut buffer),
             End(tag) => end_tag(tag, &mut buffer),
-            Text(text) => buffer.push_str(&text),
+            Text(text) => { debug!("Pushing {}", &text); buffer.push_str(&text); },
             SoftBreak => fresh_line(&mut buffer),
             HardBreak => fresh_line(&mut buffer),
             _ => ()
@@ -25,13 +29,13 @@ fn start_tag(tag: Tag, buffer: &mut String) {
             Tag::Paragraph => (),
             Tag::Rule => fresh_line(buffer),
             Tag::Header(_level) => (),
-            Tag::Table(alignments) => (),
+            Tag::Table(_alignments) => (),
             Tag::TableHead => (),
             Tag::TableRow => (),
             Tag::TableCell => (),
             Tag::BlockQuote => (),
-            Tag::CodeBlock(info) => fresh_hard_break(buffer),
-            Tag::List(_) => fresh_line(buffer),
+            Tag::CodeBlock(_info) => fresh_hard_break(buffer),
+            Tag::List(_number) => fresh_line(buffer),
             Tag::Item => (),
             Tag::Emphasis => (),
             Tag::Strong => (),
@@ -75,10 +79,12 @@ fn start_tag(tag: Tag, buffer: &mut String) {
     }
 
     fn fresh_line(buffer: &mut String) {
+        debug!("Pushing \\n");
         buffer.push('\n');
     }
 
     fn fresh_hard_break(buffer: &mut String) {
+        debug!("Pushing \\n\\n");
         buffer.push_str("\n\n");
     }
 
