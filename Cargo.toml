@@ -1,6 +1,6 @@
 [package]
 name = "strip_markdown"
-version = "0.1.1"
+version = "0.2.0"
 authors = ["Arran France <arran@arranfrance.com>"]
 edition = "2018"
 description = "A simple crate to remove markdown syntax from markdown files."
@@ -10,5 +10,5 @@ keywords = ["Markdown"]
 license = "MIT"
 
 [dependencies]
-pulldown-cmark = "0.2.0"
+pulldown-cmark = "0.7.0"
 log = "0.4.8"

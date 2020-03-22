@@ -3,27 +3,38 @@
 
 #[macro_use]
 extern crate log;
-extern crate pulldown_cmark;
 
-use pulldown_cmark::Event::{End, HardBreak, SoftBreak, Start, Text};
-use pulldown_cmark::{Parser, Tag};
+use pulldown_cmark::Event::{
+    Code, End, FootnoteReference, HardBreak, Html, Rule, SoftBreak, Start, TaskListMarker, Text,
+};
+use pulldown_cmark::{Options, Parser, Tag};
 
 #[must_use]
 pub fn strip_markdown(markdown: &str) -> String {
-    let parser = Parser::new(&markdown);
+    // GFM tables and tasks lists are not enabled.
+    let mut options = Options::empty();
+    options.insert(Options::ENABLE_STRIKETHROUGH);
+
+    let parser = Parser::new_ext(&markdown, options);
     let mut buffer = String::new();
 
+    // For each event we push into the buffer to produce the 'stripped' version.
     for event in parser {
         debug!("{:?}", event);
         match event {
+            // The start and end events don't contain the text inside the tag. That's handled by the `Event::Text` arm.
             Start(tag) => start_tag(&tag, &mut buffer),
             End(tag) => end_tag(&tag, &mut buffer),
             Text(text) => {
                 debug!("Pushing {}", &text);
                 buffer.push_str(&text);
             }
+            Code(code) => buffer.push_str(&code),
+            Html(_) => (),
+            FootnoteReference(_) => (),
+            TaskListMarker(_) => (),
             SoftBreak | HardBreak => fresh_line(&mut buffer),
-            _ => (),
+            Rule => fresh_line(&mut buffer),
         }
     }
     buffer
@@ -33,14 +44,13 @@ fn start_tag(tag: &Tag, buffer: &mut String) {
     match tag {
         Tag::CodeBlock(_info) => fresh_hard_break(buffer),
         Tag::List(_number) => fresh_line(buffer),
-        Tag::Link(_dest, title) | Tag::Image(_dest, title) => {
+        Tag::Link(_link_type, _dest, title) | Tag::Image(_link_type, _dest, title) => {
             if !title.is_empty() {
                 buffer.push_str(&title);
             }
         }
-        Tag::Rule => fresh_line(buffer),
         Tag::Paragraph => (),
-        Tag::Header(_level) => (),
+        Tag::Heading(_) => (),
         Tag::Table(_alignments) => (),
         Tag::TableHead => (),
         Tag::TableRow => (),
@@ -49,16 +59,14 @@ fn start_tag(tag: &Tag, buffer: &mut String) {
         Tag::Item => (),
         Tag::Emphasis => (),
         Tag::Strong => (),
-        Tag::Code => (),
         Tag::FootnoteDefinition(_) => (),
+        Tag::Strikethrough => (),
     }
 }
 
 fn end_tag(tag: &Tag, buffer: &mut String) {
     match tag {
         Tag::Paragraph => (),
-        Tag::Rule => (),
-        Tag::Header(_) => fresh_line(buffer),
         Tag::Table(_) => {
             fresh_line(buffer);
         }
@@ -68,13 +76,18 @@ fn end_tag(tag: &Tag, buffer: &mut String) {
         Tag::TableRow => {
             fresh_line(buffer);
         }
+        Tag::Heading(_) => fresh_line(buffer),
+        Tag::Emphasis => (),
+        Tag::TableCell => (),
+        Tag::Strong => (),
+        Tag::Link(_, _, _) => (),
         Tag::BlockQuote => fresh_line(buffer),
         Tag::CodeBlock(_) => fresh_line(buffer),
         Tag::List(_) => (),
         Tag::Item => fresh_line(buffer),
-        Tag::Image(_, _) => (), // shouldn't happen, handled in start
+        Tag::Image(_, _, _) => (), // shouldn't happen, handled in start
         Tag::FootnoteDefinition(_) => (),
-        _ => (),
+        Tag::Strikethrough => (),
     }
 }
 
@@ -129,7 +142,6 @@ Header
         assert_eq!(strip_markdown(markdown), expected);
     }
 
-    #[ignore]
     #[test]
     fn strikethrough() {
         let markdown = r#"~~strikethrough~~"#;
@@ -141,7 +153,7 @@ Header
     fn mixed_list() {
         let markdown = r#"
 1. First ordered list item
-2. Another item 
+2. Another item
 1. Actual numbers don't matter, just that it's a number
   1. Ordered sub-list
 4. And another item.
